@@ -1,0 +1,10 @@
+.DS_Store
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+crash.log
+
+CLAUDE.md
+GUIDE-FR.md
+.claude/
