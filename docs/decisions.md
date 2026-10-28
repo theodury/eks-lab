@@ -51,3 +51,15 @@
 - **Trade-off / what I'd do in production**: same imperative bootstrap as `flux bootstrap`, but production would let Argo
   manage its own chart afterwards, use an AppProject per team instead of `default`, and SSO through Dex or OIDC.
   A remote Kustomize base is a supply-chain dependency: production would vendor it or pin a commit SHA.
+
+## ADR-006 — Public names under eks.technoga.net, delegated to Route 53
+- **Context**: I want `argo.eks.technoga.net` and `pod.eks.technoga.net`. `technoga.net` lives on Cloudflare, and the ALB
+  behind those names gets a new DNS name at every `make up`, so a hand-written CNAME would break every evening.
+- **Options**: ExternalDNS writing to Cloudflare with an API token in the cluster; delegating `eks.technoga.net` to a
+  Route 53 zone and letting ExternalDNS write there with Pod Identity.
+- **Decision**: delegation. Cloudflare holds four `NS` records for `eks`, set once. The Route 53 zone and a
+  `*.eks.technoga.net` ACM certificate live in `infra/bootstrap/`, so the name servers never change and the
+  certificate stays issued across rebuilds. No Cloudflare token ever enters the cluster or the state.
+- **Trade-off / what I'd do in production**: 0.50 USD/month for the zone. Cloudflare cannot proxy a delegated name, so no
+  Cloudflare WAF or cache in front of the ALB: AWS WAF would fill that role. This is the usual split when one team owns
+  the apex domain and a platform team owns a subdomain.
