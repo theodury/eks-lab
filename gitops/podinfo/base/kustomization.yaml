@@ -1,0 +1,12 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - https://github.com/stefanprodan/podinfo//kustomize?ref=6.17.0
+patches:
+  # EKS ships no metrics-server, so the upstream HPA cannot act and would fight the replica count set in Git.
+  - patch: |-
+      $patch: delete
+      apiVersion: autoscaling/v2
+      kind: HorizontalPodAutoscaler
+      metadata:
+        name: podinfo
