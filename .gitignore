@@ -4,3 +4,7 @@
 *.tfstate.*
 *.tfvars
 crash.log
+
+CLAUDE.md
+GUIDE-FR.md
+.claude/
