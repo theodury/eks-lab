@@ -5,7 +5,7 @@ TF      := tofu -chdir=infra
 MY_IP    = $(shell curl -s https://checkip.amazonaws.com)
 KC      := kubectl --context $(CLUSTER)
 
-.PHONY: login bootstrap init plan up down status
+.PHONY: login bootstrap init plan up argocd down status
 
 login:
 	aws sso login
@@ -25,6 +25,12 @@ up: init
 	prev=$$(kubectl config current-context 2>/dev/null); \
 	aws eks update-kubeconfig --name $(CLUSTER) --alias $(CLUSTER); \
 	[ -z "$$prev" ] || kubectl config use-context "$$prev"
+	$(MAKE) argocd
+
+argocd:
+	helm upgrade --install argocd argo-cd --repo https://argoproj.github.io/argo-helm --version 10.11.6 \
+	  --kube-context $(CLUSTER) -n argocd --create-namespace -f gitops/argocd/values.yaml --wait
+	$(KC) apply -f gitops/root.yaml
 
 # ALBs/NLBs are created by the LB controller, not by tofu: they must be gone
 # before destroy or the VPC deletion hangs. Argo's controller is stopped first,

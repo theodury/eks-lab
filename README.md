@@ -38,7 +38,8 @@ ALB/NLB ~0.025 USD/h each → **≈ 0.25 USD/h, ~1 USD per evening. Destroy afte
 ```bash
 make login                                   # aws sso login, profile eks-lab
 TF_VAR_budget_email=me@example.com make bootstrap   # once: state bucket + budget
-make up        # create VPC + EKS (~15 min), write kubeconfig context "eks-lab"
+make up        # create VPC + EKS (~15 min), write kubeconfig context "eks-lab", install Argo CD + root app
+make argocd    # (re)install Argo CD and the root app on a running cluster
 make down      # delete LB-creating objects, then tofu destroy
 make status    # anything still billing? (clusters, LBs, NAT, EIPs, loose EBS) — should be empty
 ```

@@ -38,3 +38,16 @@
 - **Trade-off / what I'd do in production**: control-plane audit logs on, customer KMS key if compliance asks,
   a NAT per AZ, private endpoint behind VPN/SSM, VPC CNI credentials via Pod Identity instead of the node role,
   Karpenter instead of a fixed node group.
+
+## ADR-005 — Argo CD bootstrap and app-of-apps (phase 2)
+- **Context**: the cluster is rebuilt every session, so everything after `tofu apply` must come back from Git on its own.
+- **Options**: Argo CD installed by the tofu `helm` provider; by `helm` from the Makefile; self-managed by Argo.
+- **Decision**: `make up` runs `helm upgrade --install` (chart 10.11.6, Argo CD v3.5.6), then applies one `root`
+  Application. `root` syncs `gitops/apps/`, where each file is a child Application (app-of-apps). Children use
+  `prune` + `selfHeal` and the resources finalizer, so deleting an Application deletes what it deployed.
+  Dex and notifications are off: no SSO and no alerting needed in the lab, and two fewer pods on two small nodes.
+  podinfo uses the upstream Kustomize base pinned to tag 6.17.0, with a `lab` overlay that sets 2 replicas.
+  The upstream HPA is removed until phase 4 brings metrics-server.
+- **Trade-off / what I'd do in production**: same imperative bootstrap as `flux bootstrap`, but production would let Argo
+  manage its own chart afterwards, use an AppProject per team instead of `default`, and SSO through Dex or OIDC.
+  A remote Kustomize base is a supply-chain dependency: production would vendor it or pin a commit SHA.
