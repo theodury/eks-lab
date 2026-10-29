@@ -21,7 +21,12 @@ provider "aws" {
 
 variable "budget_email" {
   type        = string
-  description = "Address that receives the AWS Budget alerts. Pass it with TF_VAR_budget_email, never commit it."
+  description = "Address that receives the AWS Budget alerts. Lives in the gitignored terraform.tfvars next to this file."
+
+  validation {
+    condition     = can(regex("^[^@]+@[^@]+$", var.budget_email))
+    error_message = "budget_email must be an email address."
+  }
 }
 
 data "aws_caller_identity" "current" {}
