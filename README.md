@@ -41,7 +41,8 @@ Always on: the state bucket and the `eks.technoga.net` Route 53 zone, ~0.50 USD/
 ## Usage
 ```bash
 make login                                   # aws sso login, profile eks-lab
-TF_VAR_budget_email=me@example.com make bootstrap   # once: state bucket + budget
+echo 'budget_email = "me@example.com"' > infra/bootstrap/terraform.tfvars   # gitignored
+make bootstrap                               # once: state bucket, budget, Route 53 zone
 make up        # create VPC + EKS (~15 min), write kubeconfig context "eks-lab", install Argo CD + root app
 make argocd    # (re)install Argo CD and the root app on a running cluster
 make down      # delete LB-creating objects, then tofu destroy
