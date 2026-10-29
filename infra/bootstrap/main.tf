@@ -82,6 +82,34 @@ resource "aws_budgets_budget" "monthly" {
   }
 }
 
+# Cloudflare delegates eks.technoga.net to this zone's name servers; a recreated zone gets new ones.
+resource "aws_route53_zone" "lab" {
+  name = "eks.technoga.net"
+
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
+resource "aws_acm_certificate" "lab" {
+  domain_name       = "*.${aws_route53_zone.lab.name}"
+  validation_method = "DNS"
+}
+
+resource "aws_route53_record" "lab_cert_validation" {
+  for_each = { for o in aws_acm_certificate.lab.domain_validation_options : o.domain_name => o }
+
+  zone_id = aws_route53_zone.lab.zone_id
+  name    = each.value.resource_record_name
+  type    = each.value.resource_record_type
+  records = [each.value.resource_record_value]
+  ttl     = 300
+}
+
 output "state_bucket" {
   value = aws_s3_bucket.tfstate.bucket
+}
+
+output "lab_name_servers" {
+  value = aws_route53_zone.lab.name_servers
 }
