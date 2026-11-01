@@ -1,3 +1,19 @@
+global:
+  domain: argo.eks.technoga.net
+configs:
+  params:
+    # TLS ends at the ALB; argocd-server serves plain HTTP behind it.
+    server.insecure: true
+server:
+  ingress:
+    enabled: true
+    ingressClassName: alb
+    annotations:
+      alb.ingress.kubernetes.io/scheme: internet-facing
+      alb.ingress.kubernetes.io/target-type: ip
+      alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
+      alb.ingress.kubernetes.io/ssl-redirect: "443"
+      alb.ingress.kubernetes.io/group.name: eks-lab
 dex:
   enabled: false
 notifications:

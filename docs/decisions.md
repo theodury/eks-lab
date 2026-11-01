@@ -76,6 +76,10 @@
   - The controller finds the VPC by its `Name` tag, so no VPC ID in Git. The ALB picks the `*.eks.technoga.net`
     certificate by host name through ACM discovery, so no certificate ARN in Git either.
   - Target type `ip` on both: traffic goes straight to pod IPs, which VPC CNI makes routable, no NodePort hop.
-- **Trade-off / what I'd do in production**: one ALB per Ingress is expensive; production groups Ingresses with
-  `alb.ingress.kubernetes.io/group.name`. `make down` deletes the Ingress and the NLB Service before destroy, but
+  - podinfo and the Argo CD UI share one ALB through `alb.ingress.kubernetes.io/group.name`, which saves an ALB and
+    its public IPs. The UI is on `argo.eks.technoga.net`, and its listener rule matches only my current IP through a
+    `source-ip` condition. The Makefile passes that IP to helm at install time, so it never lands in the public repo.
+    Anyone else gets the ALB's default 404.
+- **Trade-off / what I'd do in production**: an IP allow-list is no authentication. Production puts SSO on Argo CD,
+  through Dex or OIDC, and often keeps the UI on an internal ALB behind a VPN. `make down` deletes the Ingress and the NLB Service before destroy, but
   ExternalDNS may not get to clean its records first; they are overwritten at the next `up` thanks to the TXT owner.
