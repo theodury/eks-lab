@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: podinfo-nlb
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
+    service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: ip
+    external-dns.alpha.kubernetes.io/hostname: nlb.eks.technoga.net
+spec:
+  type: LoadBalancer
+  loadBalancerClass: service.k8s.aws/nlb
+  selector:
+    app: podinfo
+  ports:
+    - name: http
+      port: 80
+      targetPort: http

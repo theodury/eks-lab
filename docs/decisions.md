@@ -63,3 +63,23 @@
 - **Trade-off / what I'd do in production**: 0.50 USD/month for the zone. Cloudflare cannot proxy a delegated name, so no
   Cloudflare WAF or cache in front of the ALB: AWS WAF would fill that role. This is the usual split when one team owns
   the apex domain and a platform team owns a subdomain.
+
+## ADR-007 — Load balancers and DNS from inside the cluster (phase 3)
+- **Context**: podinfo must be reachable on `pod.eks.technoga.net` over HTTPS (L7) and through an NLB (L4), and the
+  records must follow the load balancers, which get new DNS names at every `make up`.
+- **Decisions**:
+  - AWS Load Balancer Controller (chart 3.6.2) and ExternalDNS (chart 1.23.0) as Argo Applications. Their IAM roles
+    come from `terraform-aws-modules/eks-pod-identity` 2.10.0 with Pod Identity associations, no IRSA, no annotation.
+  - ExternalDNS may change records in `eks.technoga.net` only; listing is all it can do elsewhere. The LB controller
+    keeps the upstream policy, which is broad on `elasticloadbalancing:*` and EC2 security groups but conditioned on
+    the controller's own tags for deletes.
+  - The controller finds the VPC by its `Name` tag, so no VPC ID in Git. The ALB picks the `*.eks.technoga.net`
+    certificate by host name through ACM discovery, so no certificate ARN in Git either.
+  - Target type `ip` on both: traffic goes straight to pod IPs, which VPC CNI makes routable, no NodePort hop.
+  - podinfo and the Argo CD UI share one ALB through `alb.ingress.kubernetes.io/group.name`, which saves an ALB and
+    its public IPs. The UI is on `argo.eks.technoga.net`, and its listener rule matches only my current IP through a
+    `source-ip` condition. The Makefile passes that IP to helm at install time, so it never lands in the public repo.
+    Anyone else gets the ALB's default 404.
+- **Trade-off / what I'd do in production**: an IP allow-list is no authentication. Production puts SSO on Argo CD,
+  through Dex or OIDC, and often keeps the UI on an internal ALB behind a VPN. `make down` deletes the Ingress and the NLB Service before destroy, but
+  ExternalDNS may not get to clean its records first; they are overwritten at the next `up` thanks to the TXT owner.

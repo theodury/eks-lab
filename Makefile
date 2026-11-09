@@ -27,9 +27,12 @@ up: init
 	[ -z "$$prev" ] || kubectl config use-context "$$prev"
 	$(MAKE) argocd
 
+# The Argo UI answers only my current IP; the IP stays out of the public repo.
 argocd:
-	helm upgrade --install argocd argo-cd --repo https://argoproj.github.io/argo-helm --version 10.11.6 \
-	  --kube-context $(CLUSTER) -n argocd --create-namespace -f gitops/argocd/values.yaml --wait
+	printf 'server:\n  ingress:\n    annotations:\n      alb.ingress.kubernetes.io/conditions.argocd-server: %s\n' \
+	  "'[{\"field\":\"source-ip\",\"sourceIpConfig\":{\"values\":[\"$(MY_IP)/32\"]}}]'" \
+	| helm upgrade --install argocd argo-cd --repo https://argoproj.github.io/argo-helm --version 10.11.6 \
+	  --kube-context $(CLUSTER) -n argocd --create-namespace -f gitops/argocd/values.yaml -f - --wait
 	$(KC) apply -f gitops/root.yaml
 
 # ALBs/NLBs are created by the LB controller, not by tofu: they must be gone

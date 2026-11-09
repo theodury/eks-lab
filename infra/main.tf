@@ -103,3 +103,40 @@ module "eks" {
   # default_tags never reach the EC2 instances the node group launches.
   tags = local.tags
 }
+
+data "aws_route53_zone" "lab" {
+  name = "eks.technoga.net"
+}
+
+module "lb_controller_pod_identity" {
+  source  = "terraform-aws-modules/eks-pod-identity/aws"
+  version = "2.10.0"
+
+  name                            = "${local.name}-lb-controller"
+  attach_aws_lb_controller_policy = true
+
+  associations = {
+    this = {
+      cluster_name    = module.eks.cluster_name
+      namespace       = "kube-system"
+      service_account = "aws-load-balancer-controller"
+    }
+  }
+}
+
+module "external_dns_pod_identity" {
+  source  = "terraform-aws-modules/eks-pod-identity/aws"
+  version = "2.10.0"
+
+  name                          = "${local.name}-external-dns"
+  attach_external_dns_policy    = true
+  external_dns_hosted_zone_arns = [data.aws_route53_zone.lab.arn]
+
+  associations = {
+    this = {
+      cluster_name    = module.eks.cluster_name
+      namespace       = "external-dns"
+      service_account = "external-dns"
+    }
+  }
+}
